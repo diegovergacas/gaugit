@@ -27,6 +27,10 @@ void salvarAmostrasCSV(const char *nomeArquivo, uint16_t amostras[], int numAmos
     fclose(file);
 }
 
+void limparArray(uint16_t array[], int tamanho) {
+    memset(array, 0, tamanho * sizeof(uint16_t));
+}
+
 void ADC12_0_INST_IRQHandler(void){
     switch (DL_ADC12_getPendingInterrupt(ADC12_0_INST)) {
         case DL_ADC12_IIDX_MEM0_RESULT_LOADED:
@@ -37,13 +41,14 @@ void ADC12_0_INST_IRQHandler(void){
     }
 }
 
+//________________________________________________________________________________
+
 int main(void){
     SYSCFG_DL_init();
 
     NVIC_EnableIRQ(ADC12_0_INST_INT_IRQN);  // pin 25/29
     gCheckADC = false;
 
-    // Variável de contagem para 50 amostras
     int sampleCount = 0;
 
     // Array para armazenar as amostras
@@ -72,6 +77,8 @@ int main(void){
     }
 
     salvarAmostrasCSV("amostras.csv", amostras, NUM_AMOSTRAS);
+    limparArray(amostras, NUM_AMOSTRAS);
+    sampleCount = 0;
 
     // Adicione qualquer ação de término aqui, se necessário
     // ...

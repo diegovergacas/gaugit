@@ -3,7 +3,7 @@
 
 
 
-![ADC 1](C:\Users\verga\OneDrive\Desktop\Gaugit\ACD_CSV\ADC_1.png)
+<img src="C:\Users\verga\OneDrive\Desktop\Gaugit\ACD_CSV\ADC_1.png"
 
 
 

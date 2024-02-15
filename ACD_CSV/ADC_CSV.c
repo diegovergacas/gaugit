@@ -6,9 +6,12 @@
 volatile bool gCheckADC;
 volatile uint16_t gAdcResult;
 
-#define NUM_AMOSTRAS 100
+#define NUM_AMOSTRAS 50         // Valor maximo de amostras 169
+#define THRESHOLD 500           // Threshold de tensão para iniciar a conversão ADC
 
-void salvarAmostrasCSV(const char *nomeArquivo, uint16_t amostras[], int numAmostras){
+// ---------- Ciclo único ----------
+
+void salvarAmostrasCSV(const char *nomeArquivo, uint16_t amostras[], int numAmostras) {
     // Construa o caminho absoluto
     const char *caminhoAbsoluto = "C:/Users/verga/OneDrive/Desktop/ADC_resultados/amostras.csv";
     
@@ -20,7 +23,7 @@ void salvarAmostrasCSV(const char *nomeArquivo, uint16_t amostras[], int numAmos
     }
 
     fprintf(file, "Amostra\n");
-    for(int i = 0; i < numAmostras; i++){
+    for(int i = 0; i < numAmostras; i++) {
         fprintf(file, " %d\n", amostras[i]);
     }
 
@@ -40,10 +43,10 @@ void ADC12_0_INST_IRQHandler(void){
             break;
     }
 }
-//----------------------------------
+
 //________________________________________________________________________________
 
-int main(void){
+int main(void) {
     SYSCFG_DL_init();
 
     NVIC_EnableIRQ(ADC12_0_INST_INT_IRQN);  // pin 25/29
@@ -53,27 +56,37 @@ int main(void){
 
     // Array para armazenar as amostras
     uint16_t amostras[NUM_AMOSTRAS];
+    
+    // Threshold
+    DL_ADC12_startConversion(ADC12_0_INST);
+    gAdcResult = (THRESHOLD + 1);
+    printf(" %d\n", gAdcResult);
 
     while (sampleCount < NUM_AMOSTRAS) {
-        DL_ADC12_startConversion(ADC12_0_INST);
 
-        // Espera pela conclusão da conversão ADC
-        while (!gCheckADC) {
-            __WFE();
+         // Inicia a conversão apenas se a tensão for maior que o limiar
+        if (gAdcResult >= THRESHOLD) {
+            
+            DL_ADC12_startConversion(ADC12_0_INST);
+
+            // Espera pela conclusão da conversão ADC
+            while (!gCheckADC) {
+                __WFE();
+            }
+
+            gAdcResult = DL_ADC12_getMemResult(ADC12_0_INST, DL_ADC12_MEM_IDX_0);
+            printf(" %d\n", gAdcResult);
+
+            // Armazena a amostra no array
+            amostras[sampleCount] = gAdcResult;
+
+            // Incrementa a contagem de amostras
+            sampleCount++;
+
+            // Reinicia a flag para próxima amostra
+            gCheckADC = false;
+            DL_ADC12_enableConversions(ADC12_0_INST);
         }
-
-        gAdcResult = DL_ADC12_getMemResult(ADC12_0_INST, DL_ADC12_MEM_IDX_0);
-        printf(" %d\n", gAdcResult);
-
-        // Armazena a amostra no array
-        amostras[sampleCount] = gAdcResult;
-
-        // Incrementa a contagem de amostras
-        sampleCount++;
-
-        // Reinicia a flag para próxima amostra
-        gCheckADC = false;
-        DL_ADC12_enableConversions(ADC12_0_INST);
     }
 
     salvarAmostrasCSV("amostras.csv", amostras, NUM_AMOSTRAS);

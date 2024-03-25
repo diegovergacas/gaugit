@@ -1,77 +1,40 @@
-'''
-
-NÃO ESTA FUNCIONANDO A PARTE DA TEXAS
 
 '''
+Nome do Projeto: UART Communication with MSP430G2553
+Descrição: Este script implementa a comunicação UART entre o Raspberry Pi Pico (RP2040) e um microcontrolador MSP430G2553, lendo valores ADC enviados pelo MSP430G2553 e convertendo-os de volta para inteiros no Raspberry Pi Pico.
+Microcontrolador utilizado: Raspberry Pi Pico (RP2040)
+IDE utilizada: Thonny Python IDE 4.1.4
+Autor: Diego Vergaças
+Data de criação: [2024-03-25]
+Última modificação: [Data da última modificação, se aplicável]
+Observações: Certifique-se de que a taxa de baudrate e os pinos TX/RX estão corretamente configurados em ambos os microcontroladores.
+Pinos UART 1: 	TX GPIO 4
+                RX GPIO 5
+'''
 
-
-from machine import UART, Pin, ADC
-from utime import sleep
+from machine import UART, Pin
 import utime
 
-"""-----------------------------------------------------------------------------"""
-led = Pin(25, Pin.OUT)  # Pino do LED como saída
+# Configuração inicial da UART no Raspberry Pi Pico
+uart = UART(1, baudrate=9600, tx=Pin(4), rx=Pin(5))
 
-# Inicializa a UART para o Bluetooth
-blue = UART(1, baudrate=9600, tx=Pin(4), rx=Pin(5))
+print("Iniciando recepção de dados...")
 
-# Inicializa a UART para a leitura do ADC externo
-adc = UART(0, baudrate=9600, tx=Pin(0), rx=Pin(1))
-
-
-# Configura o sensor de temperatura interno
-sensor_temp = ADC(4)
-conversion_factor = 3.3 / (65535)
-
-"""-----------------------------------------------------------------------------"""
-# Função para enviar e imprimir a temperatura
-def enviar_temperatura():
-    while True:
-        reading = sensor_temp.read_u16() * conversion_factor
-        temperature = 27 - (reading - 0.706)/0.001721
-        #blue.write(str(temperature).encode() + b'\n\r')
-        print("Temperatura:", temperature)
-        utime.sleep(2)
-
-"""-----------------------------------------------------------------------------"""
-# Função para ler e imprimir dados do ADC externo
-def ler_adc():
-    # Sinal para solicitar dados do ADC
-    solicitar_dados_adc = b'R'  # Pronto para receber
-    nao_solicitar_dados_adc = b'N'  # Não pronto para receber
-
-    while True:
-        # Suponha que há uma condição que determina se estamos prontos para receber dados
-        if estamos_prontos_para_receber():  # Você precisa definir essa função ou condição
-            adc.write(solicitar_dados_adc)
-        else:
-            adc.write(nao_solicitar_dados_adc)
-            utime.sleep(1)  # Pausa antes de verificar novamente
-            continue  # Pula para a próxima iteração do loop
-        
-        # Dá um breve tempo para o outro microcontrolador responder
-        utime.sleep(0.5)
-        
-        # Verifica se há dados disponíveis para leitura
-        if adc.any() > 0:
-            rxData = adc.read(adc.any())
-            try:
-                print("Dados ADC:", rxData.decode('utf-8'))
-                # Código adicional para processar/enviar os dados recebidos
-            except UnicodeDecodeError:
-                print("Erro ao decodificar os dados recebidos.")
-
-        # Espera antes de solicitar os dados novamente
-        utime.sleep(1)
-        
-"""-----------------------------------------------------------------------------"""
 while True:
-    # Enviar e imprimir a temperatura
-    enviar_temperatura()
-    ler_adc()
-    
-    # Piscar o LED
-    led.value(1)
-    sleep(1)
-    led.value(0)
-    sleep(1)
+    if uart.any():
+        # Lê os dados disponíveis na UART
+        rxData = uart.read(uart.any())
+        #print("Dados brutos recebidos:", rxData)
+        
+        try:
+            # Decodifica os dados recebidos para string
+            dados_str = rxData.decode('utf-8')
+            # Converte a string decodificada para int
+            dados_int = int(dados_str)
+            print("Valor ADC convertido:", dados_int)
+        except ValueError:
+            print("Erro ao converter os dados para inteiro.")
+        except UnicodeDecodeError:
+            print("Erro de decodificação Unicode.")
+        
+        utime.sleep(0.1)  # Pequena pausa para evitar sobrecarga
